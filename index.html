@@ -2,35 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <title>Test Karte</title>
+    <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
-        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #ddd; }
+        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: orange; }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <script src="https://unpkg.com"></script>
+    <script src="https://cloudflare.com"></script>
     <script>
-        // Warte bis alles geladen ist
         window.onload = function() {
-            // Karte initialisieren
-            var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 12);
+            try {
+                var map = L.map('map').setView([12.2433, -69.0580], 12);
+                
+                // Wir nehmen einen anderen Karten-Server (Esri)
+                L.tileLayer('https://arcgisonline.com{z}/{y}/{x}', {
+                    attribution: 'Esri'
+                }).addTo(map);
 
-            // Kartenkacheln laden
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
-
-            // Ein einfacher blauer Standard-Marker (verursacht keine Ladefehler)
-            L.marker([12.24339, -69.05806]).addTo(map)
-                .bindPopup("<b>🏡 CAS IGUANA</b>")
-                .openPopup();
-
-            // Der "Aufweck"-Befehl für die Karte
-            setTimeout(function() {
-                map.invalidateSize();
-            }, 500);
+                L.marker([12.2433, -69.0580]).addTo(map).bindPopup("CAS IGUANA").openPopup();
+                
+                console.log("Karte geladen");
+            } catch (e) {
+                document.body.innerHTML = "<h1 style='color:white; padding:20px;'>Fehler beim Laden der Karte: " + e.message + "</h1>";
+            }
         };
     </script>
 </body>
