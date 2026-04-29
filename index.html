@@ -6,33 +6,35 @@
     <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
         body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #aad3df; }
+        #refresh-btn { 
+            position: absolute; top: 10px; right: 10px; z-index: 1000; 
+            padding: 10px; background: white; border: 2px solid #333; cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <button id="refresh-btn" onclick="location.reload()">Karte neu laden</button>
     <div id="map"></div>
+    
     <script src="https://cloudflare.com"></script>
     <script>
         window.onload = function() {
-            // Wir starten etwas weiter weg (Zoom 13), um Fontein und Umgebung zu sehen
-            var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 13);
+            // Karte initialisieren - wir starten etwas weiter weg, um Land zu sehen
+            var map = L.map('map').setView([12.18, -68.98], 11);
 
-            // Wir probieren den Wikimedia-Server (oft schneller & weniger blockiert)
+            // WIKIMEDIA MAPS (Sehr hohe Erreichbarkeit)
             L.tileLayer('https://wikimedia.org{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            // Falls Wikimedia auch blockiert wird, laden wir OSM als Backup
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-            // Ein einfacher Marker für CAS IGUANA
+            // Marker für CAS IGUANA
             L.marker([12.2433, -69.0580]).addTo(map)
                 .bindPopup("<b>🏡 CAS IGUANA</b>")
                 .openPopup();
 
-            // Zwingt die Karte zur Anzeige
-            setTimeout(function() {
-                map.invalidateSize();
-            }, 1000);
+            // Aggressiver Force-Refresh
+            setTimeout(function() { map.invalidateSize(); }, 500);
+            setTimeout(function() { map.invalidateSize(); }, 2000);
         };
     </script>
 </body>
