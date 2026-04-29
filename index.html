@@ -5,7 +5,6 @@
     <title>Curacao Karte</title>
     <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
-        /* Hellblau als Wasser-Farbe, falls die Karte mal kurz lädt */
         body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #aad3df; }
     </style>
 </head>
@@ -14,24 +13,26 @@
     <script src="https://cloudflare.com"></script>
     <script>
         window.onload = function() {
-            // Wir starten die Karte direkt auf deinem Haus
-            var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 15);
+            // Wir starten etwas weiter weg (Zoom 13), um Fontein und Umgebung zu sehen
+            var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 13);
 
-            // Wir nutzen den stabilsten Standard-Server
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Wir probieren den Wikimedia-Server (oft schneller & weniger blockiert)
+            L.tileLayer('https://wikimedia.org{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
+            // Falls Wikimedia auch blockiert wird, laden wir OSM als Backup
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
             // Ein einfacher Marker für CAS IGUANA
-            // Wir nutzen ein Standard-Symbol, das keine externe Bilddatei braucht
             L.marker([12.2433, -69.0580]).addTo(map)
-                .bindPopup("<b>🏡 CAS IGUANA</b><br>Villapark Fontein")
+                .bindPopup("<b>🏡 CAS IGUANA</b>")
                 .openPopup();
 
-            // Der "Wachmacher" für die Bilder
+            // Zwingt die Karte zur Anzeige
             setTimeout(function() {
                 map.invalidateSize();
-            }, 500);
+            }, 1000);
         };
     </script>
 </body>
