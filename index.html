@@ -2,32 +2,42 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Test Karte</title>
+    <title>Curacao Karte</title>
+    <!-- CSS für das Aussehen -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
-        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: orange; }
+        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #333; }
     </style>
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- Das Programm (JS) wird hier geladen -->
     <script src="https://cloudflare.com"></script>
+    
     <script>
-        window.onload = function() {
-            try {
-                var map = L.map('map').setView([12.2433, -69.0580], 12);
+        // Diese Funktion prüft, ob das Programm (L) bereit ist
+        function startMap() {
+            if (typeof L !== 'undefined') {
+                var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 12);
                 
-                // Wir nehmen einen anderen Karten-Server (Esri)
                 L.tileLayer('https://arcgisonline.com{z}/{y}/{x}', {
                     attribution: 'Esri'
                 }).addTo(map);
 
-                L.marker([12.2433, -69.0580]).addTo(map).bindPopup("CAS IGUANA").openPopup();
+                // Dein Haus-Marker
+                L.marker([12.2433, -69.0580]).addTo(map).bindPopup("<b>🏡 CAS IGUANA</b>").openPopup();
                 
-                console.log("Karte geladen");
-            } catch (e) {
-                document.body.innerHTML = "<h1 style='color:white; padding:20px;'>Fehler beim Laden der Karte: " + e.message + "</h1>";
+                // Falls das Fenster beim Start noch nicht fertig berechnet war
+                setTimeout(function() { map.invalidateSize(); }, 500);
+            } else {
+                // Wenn L noch nicht da ist, warte 0,1 Sekunde und versuche es erneut
+                setTimeout(startMap, 100);
             }
-        };
+        }
+
+        // Startet die Prüfung
+        startMap();
     </script>
 </body>
 </html>
