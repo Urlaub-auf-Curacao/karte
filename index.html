@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <style>
+        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #ddd; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com"></script>
+    <script>
+        // Warte bis alles geladen ist
+        window.onload = function() {
+            // Karte initialisieren
+            var map = L.map('map', {scrollWheelZoom: false}).setView([12.2433, -69.0580], 12);
+
+            // Kartenkacheln laden
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            // Ein einfacher blauer Standard-Marker (verursacht keine Ladefehler)
+            L.marker([12.24339, -69.05806]).addTo(map)
+                .bindPopup("<b>🏡 CAS IGUANA</b>")
+                .openPopup();
+
+            // Der "Aufweck"-Befehl für die Karte
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
