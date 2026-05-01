@@ -1,41 +1,390 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Curacao Karte</title>
-    <link rel="stylesheet" href="https://cloudflare.com" />
-    <style>
-        body, html, #map { margin: 0; padding: 0; height: 100vh; width: 100vw; background: #aad3df; }
-        #refresh-btn { 
-            position: absolute; top: 10px; right: 10px; z-index: 1000; 
-            padding: 10px; background: white; border: 2px solid #333; cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <button id="refresh-btn" onclick="location.reload()">Karte neu laden</button>
-    <div id="map"></div>
-    
-    <script src="https://cloudflare.com"></script>
-    <script>
-        window.onload = function() {
-            // Karte initialisieren - wir starten etwas weiter weg, um Land zu sehen
-            var map = L.map('map').setView([12.18, -68.98], 11);
 
-            // WIKIMEDIA MAPS (Sehr hohe Erreichbarkeit)
-            L.tileLayer('https://wikimedia.org{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
 
-            // Marker für CAS IGUANA
-            L.marker([12.2433, -69.0580]).addTo(map)
-                .bindPopup("<b>🏡 CAS IGUANA</b>")
-                .openPopup();
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Playfair+Display:wght@700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .app { font-family: 'Sora', sans-serif; min-height: 100vh; padding: 1.5rem 1rem 2rem; background: transparent; }
+  .header { text-align: center; margin-bottom: 1.5rem; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2; }
+  .header p { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+  .flag-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .tab-bar { display: flex; gap: 6px; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab-btn { padding: 6px 14px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: transparent; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .tab-btn.active { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+  .tab-btn:hover:not(.active) { background: var(--color-background-secondary); }
+  .section { display: none; }
+  .section.active { display: block; }
+  .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .vocab-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 12px; cursor: pointer; transition: all 0.15s; text-align: center; position: relative; }
+  .vocab-card:hover { border-color: var(--color-border-secondary); background: var(--color-background-secondary); }
+  .vocab-card .pap-word { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .vocab-card .de-word { font-size: 12px; color: var(--color-text-secondary); }
+  .vocab-card .speak-btn { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; }
+  .vocab-card .speak-btn:hover { border-color: var(--color-border-info); background: var(--color-background-info); }
+  .category-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 1rem 0 0.5rem; }
+  .quiz-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem 1.5rem; text-align: center; margin-bottom: 1rem; }
+  .quiz-question { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .quiz-word { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 1.5rem; }
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quiz-option { padding: 10px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); font-family: 'Sora', sans-serif; font-size: 13px; color: var(--color-text-primary); cursor: pointer; transition: all 0.15s; text-align: center; }
+  .quiz-option:hover:not(:disabled) { background: var(--color-background-secondary); }
+  .quiz-option.correct { background: var(--color-background-success); color: var(--color-text-success); border-color: transparent; }
+  .quiz-option.wrong { background: var(--color-background-danger); color: var(--color-text-danger); border-color: transparent; }
+  .quiz-feedback { margin-top: 1rem; font-size: 14px; font-weight: 500; min-height: 22px; }
+  .quiz-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+  .score-pill { background: var(--color-background-secondary); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--color-text-secondary); }
+  .btn-next { padding: 8px 20px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; font-family: 'Sora', sans-serif; font-size: 13px; color: var(--color-text-primary); cursor: pointer; transition: all 0.15s; }
+  .btn-next:hover { background: var(--color-background-secondary); }
+  .btn-next:active { transform: scale(0.98); }
 
-            // Aggressiver Force-Refresh
-            setTimeout(function() { map.invalidateSize(); }, 500);
-            setTimeout(function() { map.invalidateSize(); }, 2000);
-        };
-    </script>
-</body>
-</html>
+  .phrase-cat-header {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 8px 12px;
+    margin: 1rem 0 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .phrase-cat-header .cat-icon { font-size: 16px; }
+  .phrase-cat-header .cat-title { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+  .phrase-cat-header .chevron { font-size: 11px; color: var(--color-text-tertiary); transition: transform 0.2s; }
+  .phrase-cat-header.open .chevron { transform: rotate(90deg); }
+  .phrase-group { overflow: hidden; }
+  .phrase-block { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .phrase-block .pap { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+  .phrase-block .de { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .phrase-block .speak-big { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 0.5px solid var(--color-border-secondary); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; transition: all 0.15s; }
+  .phrase-block .speak-big:hover { background: var(--color-background-info); border-color: var(--color-border-info); }
+  .speaking-wave { display: none; align-items: center; gap: 3px; height: 16px; justify-content: center; margin: 4px 0; }
+  .speaking-wave.active { display: flex; }
+  .speaking-wave span { width: 3px; background: var(--color-text-info); border-radius: 2px; animation: wave 0.8s ease-in-out infinite; }
+  .speaking-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .speaking-wave span:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+  .speaking-wave span:nth-child(3) { height: 16px; animation-delay: 0.2s; }
+  .speaking-wave span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
+  .speaking-wave span:nth-child(5) { height: 6px; animation-delay: 0.4s; }
+  @keyframes wave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+  .tts-status { font-size: 11px; color: var(--color-text-tertiary); text-align: center; margin-bottom: 6px; }
+  .progress-bar { height: 3px; background: var(--color-background-secondary); border-radius: 2px; margin-bottom: 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--color-text-info); border-radius: 2px; transition: width 0.3s; }
+</style>
+
+<div class="app">
+  <div class="header">
+    <div class="flag-badge">🇨🇼 Curaçao · Aruba · Bonaire</div>
+    <h1>Papiamento lernen</h1>
+    <p>Dein Einstieg in die Sprache der ABC-Inseln</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('vocab',this)">Wörter</button>
+    <button class="tab-btn" onclick="showTab('phrases',this)">Sätze</button>
+    <button class="tab-btn" onclick="showTab('quiz',this)">Quiz</button>
+  </div>
+
+  <div id="tab-vocab" class="section active">
+    <div class="tts-status" id="tts-status"></div>
+    <div class="speaking-wave" id="wave"><span></span><span></span><span></span><span></span><span></span></div>
+    <div id="vocab-container"></div>
+  </div>
+
+  <div id="tab-phrases" class="section">
+    <div class="speaking-wave" id="wave2"><span></span><span></span><span></span><span></span><span></span></div>
+    <div id="phrases-container"></div>
+  </div>
+
+  <div id="tab-quiz" class="section">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="quiz-card">
+      <div class="quiz-question">Was bedeutet auf Deutsch?</div>
+      <div class="quiz-word" id="quiz-word">—</div>
+      <div class="quiz-options" id="quiz-options"></div>
+      <div class="quiz-feedback" id="quiz-feedback"></div>
+    </div>
+    <div class="quiz-footer">
+      <div class="score-pill">Punkte: <span id="score-val">0</span> / <span id="total-val">0</span></div>
+      <button class="btn-next" onclick="nextQuestion()">Weiter →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const vocab = {
+  "Begrüßung": [
+    { pap: "Bon dia", de: "Guten Morgen" },
+    { pap: "Bon tardi", de: "Guten Tag" },
+    { pap: "Bon nochi", de: "Gute Nacht" },
+    { pap: "Masha danki", de: "Danke sehr" },
+    { pap: "Por fabor", de: "Bitte" },
+    { pap: "Kon ta bai?", de: "Wie geht's?" },
+  ],
+  "Zahlen": [
+    { pap: "Un", de: "Eins" },
+    { pap: "Dos", de: "Zwei" },
+    { pap: "Tres", de: "Drei" },
+    { pap: "Kuater", de: "Vier" },
+    { pap: "Sinku", de: "Fünf" },
+    { pap: "Seis", de: "Sechs" },
+  ],
+  "Farben": [
+    { pap: "Blauw", de: "Blau" },
+    { pap: "Hel", de: "Gelb" },
+    { pap: "Kora", de: "Rot" },
+    { pap: "Bèrdè", de: "Grün" },
+    { pap: "Zwart", de: "Schwarz" },
+    { pap: "Blanku", de: "Weiß" },
+  ],
+  "Familie": [
+    { pap: "Mama", de: "Mutter" },
+    { pap: "Tata", de: "Vater" },
+    { pap: "Ruman", de: "Geschwister" },
+    { pap: "Yiu", de: "Kind" },
+    { pap: "Nanishi", de: "Oma/Opa" },
+    { pap: "Kasá", de: "Ehepartner" },
+  ]
+};
+
+const phraseCategories = [
+  {
+    icon: "👋",
+    title: "Alltag & Begrüßung",
+    phrases: [
+      { pap: "Mi ta bon, danki.", de: "Mir geht's gut, danke." },
+      { pap: "Kua ora ta?", de: "Wie spät ist es?" },
+      { pap: "Mi no ta komprondé.", de: "Ich verstehe nicht." },
+      { pap: "Habla mas poko, por fabor.", de: "Bitte sprich langsamer." },
+      { pap: "Mi ta di Alemania.", de: "Ich komme aus Deutschland." },
+      { pap: "Te mira!", de: "Bis bald!" },
+      { pap: "Ayudo mi, por fabor!", de: "Bitte hilf mir!" },
+    ]
+  },
+  {
+    icon: "🍽️",
+    title: "Restaurant",
+    phrases: [
+      { pap: "Un mesa pa dos persona, por fabor.", de: "Einen Tisch für zwei Personen, bitte." },
+      { pap: "Por mi haña e menu, por fabor?", de: "Kann ich die Speisekarte haben, bitte?" },
+      { pap: "Kiko bo ta rekumendá?", de: "Was empfehlen Sie?" },
+      { pap: "Mi kier odrená awor.", de: "Ich möchte jetzt bestellen." },
+      { pap: "Mi ta alérghiko na ...", de: "Ich bin allergisch gegen ..." },
+      { pap: "Sin gluten, por fabor.", de: "Ohne Gluten, bitte." },
+      { pap: "E kuminda tabata masha sabroso.", de: "Das Essen war sehr lecker." },
+      { pap: "Por mi haña algo di bebe?", de: "Kann ich etwas zu trinken bekommen?" },
+      { pap: "Un awa, por fabor.", de: "Ein Wasser, bitte." },
+      { pap: "E karta, por fabor.", de: "Die Rechnung, bitte." },
+      { pap: "Nos ta pagando huntu.", de: "Wir zahlen zusammen." },
+      { pap: "Separá, por fabor.", de: "Getrennt zahlen, bitte." },
+      { pap: "Tin un tabel disponibel?", de: "Gibt es einen freien Tisch?" },
+      { pap: "E kuminda ta fríu.", de: "Das Essen ist kalt." },
+    ]
+  },
+  {
+    icon: "🛒",
+    title: "Supermarkt & Einkaufen",
+    phrases: [
+      { pap: "Unda mi por haña ...?", de: "Wo finde ich ...?" },
+      { pap: "Kuánto e ta kosta?", de: "Wie viel kostet das?" },
+      { pap: "E ta demasiado caro.", de: "Das ist zu teuer." },
+      { pap: "Tin algo mas baratu?", de: "Gibt es etwas Günstigeres?" },
+      { pap: "Mi kier esaki, por fabor.", de: "Ich möchte das hier, bitte." },
+      { pap: "Unda ta e kaha?", de: "Wo ist die Kasse?" },
+      { pap: "Bo ta akseptá tarjeta?", de: "Akzeptieren Sie Karten?" },
+      { pap: "Mi ke pagá ku cash.", de: "Ich möchte bar bezahlen." },
+      { pap: "Por mi haña un bolsa?", de: "Kann ich eine Tüte bekommen?" },
+      { pap: "Mi ke bira esaki.", de: "Ich möchte das zurückgeben." },
+      { pap: "E ta den oferta?", de: "Ist das im Angebot?" },
+      { pap: "Un resibo, por fabor.", de: "Eine Quittung, bitte." },
+    ]
+  },
+  {
+    icon: "☕",
+    title: "Café & Bäckerei",
+    phrases: [
+      { pap: "Un kòfi, por fabor.", de: "Einen Kaffee, bitte." },
+      { pap: "Ku lechi o sin lechi?", de: "Mit oder ohne Milch?" },
+      { pap: "Ku azukar, por fabor.", de: "Mit Zucker, bitte." },
+      { pap: "Un piesa di pan, por fabor.", de: "Ein Stück Brot, bitte." },
+      { pap: "Tin algo dushi?", de: "Haben Sie etwas Süßes?" },
+      { pap: "Para kibá, por fabor.", de: "Zum Mitnehmen, bitte." },
+      { pap: "Nos ta kome akí.", de: "Wir essen hier." },
+    ]
+  },
+  {
+    icon: "🏥",
+    title: "Apotheke & Notfall",
+    phrases: [
+      { pap: "Mi ta sinti mi malu.", de: "Ich fühle mich krank." },
+      { pap: "Mi tin dolor di kabes.", de: "Ich habe Kopfschmerzen." },
+      { pap: "Mi mester un doktor.", de: "Ich brauche einen Arzt." },
+      { pap: "Unda ta e farmasia?", de: "Wo ist die Apotheke?" },
+      { pap: "Tin remedi kontra dolor?", de: "Haben Sie Schmerzmittel?" },
+      { pap: "Yama un ambulansa!", de: "Rufen Sie einen Krankenwagen!" },
+    ]
+  },
+  {
+    icon: "🚌",
+    title: "Unterwegs & Transport",
+    phrases: [
+      { pap: "Unda mi por kumpra kuminda?", de: "Wo kann ich Essen kaufen?" },
+      { pap: "Mi ta keda na hotel.", de: "Ich wohne im Hotel." },
+      { pap: "Kuan e bùs ta sali?", de: "Wann fährt der Bus?" },
+      { pap: "Kuánto ta e biaje pa ...?", de: "Was kostet die Fahrt nach ...?" },
+      { pap: "Para akí, por fabor.", de: "Hier halten, bitte." },
+      { pap: "Unda ta e estashon?", de: "Wo ist der Bahnhof?" },
+      { pap: "Mi ta perdí.", de: "Ich habe mich verlaufen." },
+    ]
+  },
+];
+
+let allWords = [];
+Object.values(vocab).forEach(arr => allWords.push(...arr));
+
+let quizIndex = 0, score = 0, totalAnswered = 0, answered = false;
+let quizOrder = [];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function speak(text, waveId) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-419';
+  utter.rate = 0.85;
+  utter.pitch = 1;
+  const wave = document.getElementById(waveId || 'wave');
+  utter.onstart = () => { if (wave) wave.classList.add('active'); };
+  utter.onend = () => { if (wave) wave.classList.remove('active'); };
+  utter.onerror = () => { if (wave) wave.classList.remove('active'); };
+  window.speechSynthesis.speak(utter);
+}
+
+function renderVocab() {
+  const c = document.getElementById('vocab-container');
+  c.innerHTML = '';
+  for (const [cat, words] of Object.entries(vocab)) {
+    const lbl = document.createElement('div');
+    lbl.className = 'category-label';
+    lbl.textContent = cat;
+    c.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'vocab-grid';
+    words.forEach(w => {
+      const card = document.createElement('div');
+      card.className = 'vocab-card';
+      card.innerHTML = `
+        <button class="speak-btn" onclick="event.stopPropagation();speak('${w.pap.replace(/'/g,"\\'")}','wave')">▶</button>
+        <div class="pap-word">${w.pap}</div>
+        <div class="de-word">${w.de}</div>
+      `;
+      card.onclick = () => speak(w.pap, 'wave');
+      grid.appendChild(card);
+    });
+    c.appendChild(grid);
+  }
+}
+
+function renderPhrases() {
+  const c = document.getElementById('phrases-container');
+  c.innerHTML = '';
+  phraseCategories.forEach((cat, ci) => {
+    const header = document.createElement('div');
+    header.className = 'phrase-cat-header open';
+    header.innerHTML = `<span class="cat-icon">${cat.icon}</span><span class="cat-title">${cat.title}</span><span class="chevron">▶</span>`;
+    const group = document.createElement('div');
+    group.className = 'phrase-group';
+    group.id = 'pg-' + ci;
+    cat.phrases.forEach(p => {
+      const block = document.createElement('div');
+      block.className = 'phrase-block';
+      const safeText = p.pap.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      block.innerHTML = `
+        <div>
+          <div class="pap">${p.pap}</div>
+          <div class="de">${p.de}</div>
+        </div>
+        <button class="speak-big" onclick="speak('${safeText}','wave2')">▶</button>
+      `;
+      group.appendChild(block);
+    });
+    header.onclick = () => {
+      const open = header.classList.toggle('open');
+      group.style.display = open ? 'block' : 'none';
+    };
+    c.appendChild(header);
+    c.appendChild(group);
+  });
+}
+
+function startQuiz() {
+  quizOrder = shuffle(allWords);
+  quizIndex = 0; score = 0; totalAnswered = 0;
+  document.getElementById('score-val').textContent = 0;
+  document.getElementById('total-val').textContent = 0;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  if (quizIndex >= quizOrder.length) quizIndex = 0;
+  answered = false;
+  const q = quizOrder[quizIndex];
+  document.getElementById('quiz-word').textContent = q.pap;
+  document.getElementById('quiz-feedback').textContent = '';
+  const pct = Math.round((quizIndex / quizOrder.length) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  const others = shuffle(allWords.filter(w => w.de !== q.de)).slice(0, 3);
+  const options = shuffle([q, ...others]);
+  const cont = document.getElementById('quiz-options');
+  cont.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.textContent = opt.de;
+    btn.onclick = () => checkAnswer(btn, opt.de, q.de, q.pap);
+    cont.appendChild(btn);
+  });
+}
+
+function checkAnswer(btn, chosen, correct, pap) {
+  if (answered) return;
+  answered = true;
+  totalAnswered++;
+  document.querySelectorAll('.quiz-option').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add('correct');
+  });
+  if (chosen === correct) {
+    score++;
+    btn.classList.add('correct');
+    document.getElementById('quiz-feedback').textContent = '✓ Richtig!';
+    document.getElementById('quiz-feedback').style.color = 'var(--color-text-success)';
+    speak(pap, 'wave');
+  } else {
+    btn.classList.add('wrong');
+    document.getElementById('quiz-feedback').textContent = '✗ Falsch – richtig: ' + correct;
+    document.getElementById('quiz-feedback').style.color = 'var(--color-text-danger)';
+  }
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('total-val').textContent = totalAnswered;
+}
+
+function nextQuestion() { quizIndex++; renderQuestion(); }
+
+function showTab(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'quiz') startQuiz();
+}
+
+renderVocab();
+renderPhrases();
+</script>
